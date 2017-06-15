@@ -5,6 +5,7 @@ import numpy as np
 import os
 import time
 import datetime
+import logging
 import data_helpers
 from text_cnn import TextCNN
 from tensorflow.contrib import learn
@@ -20,15 +21,15 @@ tf.flags.DEFINE_string("row_data_file",         "../data/zhidao_dataneg.tsv", "D
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim",        300,        "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes",          "3,4,5",    "Comma-separated filter sizes (default: '3,4,5')")
-tf.flags.DEFINE_integer("num_filters",          128,        "Number of filters per filter size (default: 128)")
+tf.flags.DEFINE_integer("num_filters",          32,         "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob",      0.5,        "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda",          0.0,        "L2 regularization lambda (default: 0.0)")
 
 # Training parameters
-tf.flags.DEFINE_integer("batch_size",           64,         "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs",           200,        "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("batch_size",           128,        "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("num_epochs",           1,          "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every",       100,        "Evaluate model after X steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every",     100,        "Save model after X steps (default: 100)")
+tf.flags.DEFINE_integer("checkpoint_every",     5000,       "Save model after X steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints",      5,          "Number of checkpoints to store (default: 5)")
 
 # Misc Parameters
@@ -52,10 +53,12 @@ logger.info("")
 
 # Load data
 logger.info("Loading data...")
-x_text, y = data_helpers.load_data_and_labels(FLAGS.train_data_file, FLAGS.row_data_file)
+train_size, train_data, train_label = data_helpers.load_data(FLAGS.train_data_file, FLAGS.row_data_file)
+x_text = train_data
+y = np.array(train_label)
 
 # Build vocabulary
-max_document_length = max([len(x.split(" ")) for x in x_text])
+max_document_length = max([len(x.split()) for x in train_data])
 vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
 x = np.array(list(vocab_processor.fit_transform(x_text)))
 
@@ -79,8 +82,9 @@ logger.info("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
 with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
-      allow_soft_placement=FLAGS.allow_soft_placement,
-      log_device_placement=FLAGS.log_device_placement)
+    allow_soft_placement=FLAGS.allow_soft_placement,
+    log_device_placement=FLAGS.log_device_placement)
+    session_conf.gpu_options.allow_growth = True
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         cnn = TextCNN(
@@ -111,7 +115,7 @@ with tf.Graph().as_default():
         # Output directory for models and summaries
         timestamp = str(int(time.time()))
         out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-        print("Writing to {}\n".format(out_dir))
+        logger.info("Writing to {}\n".format(out_dir))
 
         # Summaries for loss and accuracy
         loss_summary = tf.summary.scalar("loss", cnn.loss)
@@ -153,7 +157,7 @@ with tf.Graph().as_default():
                 [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            logger.info("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             train_summary_writer.add_summary(summaries, step)
 
         def dev_step(x_batch, y_batch, writer=None):
@@ -169,7 +173,7 @@ with tf.Graph().as_default():
                 [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
-            print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            logger.info("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             if writer:
                 writer.add_summary(summaries, step)
 
@@ -182,9 +186,9 @@ with tf.Graph().as_default():
             train_step(x_batch, y_batch)
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
-                print("\nEvaluation:")
+                logger.info("\nEvaluation:")
                 dev_step(x_dev, y_dev, writer=dev_summary_writer)
-                print("")
+                logger.info("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                print("Saved model checkpoint to {}\n".format(path))
+                logger.info("Saved model checkpoint to {}\n".format(path))

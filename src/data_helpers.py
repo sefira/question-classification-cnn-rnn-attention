@@ -73,7 +73,7 @@ def read_data_and_labels(train_data_file, row_data_file):
         train_labels.append(label_temp)
     return [train_number, train_samples, train_labels]
 
-def resample_data(X, y):
+def oversample_data(X, y):
     if (len(X) != len(y)):
         logger.info("Can't Resample, number is inconsistent:{}:{}".format(len(X), len(y)))
         return None
@@ -113,6 +113,8 @@ def resample_data(X, y):
         logger.info("label: {}, #origin: {}, #sampling: {}".format(key,np.shape(y[y == key]),np.shape(y[y == key][indx])))
         y_resampled = list(y_resampled)+list(y[y == key])+list(y[y == key][indx])
     logger.info('Resampled dataset shape {}'.format(Counter(y_resampled)))
+    logger.info("Over-Sampling is complete, total #{} samples".format(len(X_resampled)))
+    
     return [X_resampled, y_resampled]
 
 num2onehot={
@@ -135,9 +137,9 @@ def load_data(train_data_file, row_data_file):
         return None
     
     #oversampling data to against imbalanced data
-    X, y = resample_data(X, y)
+    X, y = oversample_data(X, y)
 
-    # alignment label 
+    # format data and label 
     """
     transfer label 		from 	to 	formated
     Negative			-1		0	[1,0,0,0,0,0,0,0]
@@ -153,28 +155,32 @@ def load_data(train_data_file, row_data_file):
     """
 
     y_formated = []
+    X_formated = []
     for i in range(len(X)):
         if (X[i].label != y[i]):
-            logger.info("Label is inconsistent in {}".format(i))
+            logger.info("Data or Label is inconsistent in {}".format(i))
             return None
         if (X[i].label in num2onehot):
             y_formated.append(num2onehot[X[i].label])
+            X_formated.append(X[i].train_data)
 
-    if (len(X) != len(y)):
+    if (len(X_formated) != len(y_formated)):
         logger.info("Number is inconsistent after num2onehot")
         return None
-    N = len(X)
+    N = len(X_formated)
 
-    # check if there is any wrong in the formated label
+    # check if there is any wrong in the formated data and label
     random_state = check_random_state(12)
     check_index = random_state.randint(low=0, high=N-1,size=1000)
     for i in check_index:
+        if X[i].train_data != X_formated[i]:
+            logger.info("Data is inconsistent after num2onehot :{}:{}".format(X[i].train_data, X_formated[i]))
+            return None
         if label_num.index(X[i].label) != y_formated[i].index(1):
             logger.info("Label is inconsistent after num2onehot")
             return None
-    logger.info("Over-Sampling is complete")
 
-    return [N, X, y_formated]
+    return [N, X_formated, y_formated]
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
