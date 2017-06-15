@@ -68,3 +68,5 @@ target/
 # Temporary data
 .ipynb_checkpoints/
 data/
+*.model
+*.vector
