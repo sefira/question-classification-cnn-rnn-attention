@@ -7,8 +7,10 @@ import time
 import datetime
 import logging
 import data_helpers
+from word2vec_helpers import Word2VecHelper
 from text_cnn import TextCNN
 from tensorflow.contrib import learn
+from tensorflow.python.platform import gfile
 
 # Parameters
 # ==================================================
@@ -59,8 +61,10 @@ y = np.array(train_label)
 
 # Build vocabulary
 max_document_length = max([len(x.split()) for x in train_data])
-vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
-x = np.array(list(vocab_processor.fit_transform(x_text)))
+word2vec_helpers = Word2VecHelper()
+x = word2vec_helpers.SentencesIndex(x_text, max_document_length)
+#vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
+#x = np.array(list(vocab_processor.fit_transform(x_text)))
 
 # Randomly shuffle data
 np.random.seed(10)
@@ -73,7 +77,7 @@ y_shuffled = y[shuffle_indices]
 dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
 x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
 y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
-logger.info("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
+logger.info("Vocabulary Size: {:d}".format(word2vec_helpers.vocab_size))
 logger.info("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
 
@@ -90,11 +94,13 @@ with tf.Graph().as_default():
         cnn = TextCNN(
             sequence_length=x_train.shape[1],
             num_classes=y_train.shape[1],
-            vocab_size=len(vocab_processor.vocabulary_),
+            vocab_size=word2vec_helpers.vocab_size,
             embedding_size=FLAGS.embedding_dim,
             filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
             num_filters=FLAGS.num_filters,
-            l2_reg_lambda=FLAGS.l2_reg_lambda)
+            l2_reg_lambda=FLAGS.l2_reg_lambda,
+            vocab_array=word2vec_helpers.wordvector.astype(np.float32)
+            )
 
         # Define Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
@@ -139,7 +145,7 @@ with tf.Graph().as_default():
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
         # Write vocabulary
-        vocab_processor.save(os.path.join(out_dir, "vocab"))
+        #vocab_processor.save(os.path.join(out_dir, "vocab"))
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
@@ -180,6 +186,9 @@ with tf.Graph().as_default():
         # Generate batches
         batches = data_helpers.batch_iter(
             list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+        logger.info("With {} batch size, and {} train samples".format(FLAGS.batch_size, len(x_train)))
+        logger.info("We get {} batches per epoch".format(len(x_train)/FLAGS.batch_size))
+
         # Training loop. For each batch...
         for batch in batches:
             x_batch, y_batch = zip(*batch)
@@ -192,3 +201,7 @@ with tf.Graph().as_default():
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                 logger.info("Saved model checkpoint to {}\n".format(path))
+
+        logger.info("Final Checkpoint:")
+        path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+        logger.info("Saved model checkpoint to {}\n".format(path))

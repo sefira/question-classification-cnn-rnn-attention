@@ -7,7 +7,7 @@ class TextCNN(object):
     """
     def __init__(
       self, sequence_length, num_classes, vocab_size,
-      embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
+      embedding_size, filter_sizes, num_filters, vocab_array, l2_reg_lambda=0.0):
 
         # Placeholders for input, output and dropout
         self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
@@ -19,9 +19,10 @@ class TextCNN(object):
 
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            W = tf.Variable(
-                tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                name="W")
+            W = tf.Variable(vocab_array, name="W")
+            # W = tf.Variable(
+            #     tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+            #     name="W")
             self.embedded_chars = tf.nn.embedding_lookup(W, self.input_x)
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
 
@@ -61,10 +62,7 @@ class TextCNN(object):
 
         # Final (unnormalized) scores and predictions
         with tf.name_scope("output"):
-            W = tf.get_variable(
-                "W",
-                shape=[num_filters_total, num_classes],
-                initializer=tf.contrib.layers.xavier_initializer())
+            W = tf.Variable(tf.truncated_normal([num_filters_total, num_classes], stddev=0.1), name="W")
             b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
             l2_loss += tf.nn.l2_loss(W)
             l2_loss += tf.nn.l2_loss(b)
