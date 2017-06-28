@@ -48,6 +48,12 @@ CNN Model Graph
 Model Parameter Histogram
 ![Parameter Histogram](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/HISTOGRAMS.png)
 
+## Evaluating
+```bash
+python -i eval.py
+```
+After all training process, we can evaluate the trained model in natural language test data. The evaluate batch is 1, so that this code can be easily transferred to TensorFlow Serving saved_model.
+
 ***
 本代码Fork自[dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf)。不过与其不同的是我使用data_helprs.py中支持了中文处理，并且修改了词嵌入层，将原来的随机化词嵌入改为了使用预训练好的word2vec向量。也对模型代码和训练过程参数有一些调整。这个版本的CNN问题分类模型在百度知道电影问题分类上实现了82%的准确度
 
@@ -96,3 +102,10 @@ CNN Model Graph
 ![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHS.png)
 Model Parameter Histogram
 ![Parameter Histogram](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/HISTOGRAMS.png)
+
+## 评估
+```bash
+python -i eval.py
+```
+在所有的训练和调参结束后，我们可以在更为困难（更接近真实场景）的自然语言数据上测试模型。
+在评估的时候，batch size是1，这样方便将这份代码直接迁移到TensorFlow Serving的saved model中。
