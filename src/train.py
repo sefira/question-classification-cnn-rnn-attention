@@ -18,7 +18,7 @@ from tensorflow.python.platform import gfile
 # Data loading params
 tf.flags.DEFINE_float("dev_sample_percentage", .1,          "Percentage of the training data to use for validation")
 tf.flags.DEFINE_string("train_data_file",       "../data/zhidao_dataneg.tsv.removeword", "Data source for the train data.")
-tf.flags.DEFINE_string("row_data_file",         "../data/zhidao_dataneg.tsv", "Data source for the label data.")
+tf.flags.DEFINE_string("raw_data_file",         "../data/zhidao_dataneg.tsv", "Data source for the label data.")
 
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim",        300,        "Dimensionality of character embedding (default: 128)")
@@ -35,6 +35,7 @@ tf.flags.DEFINE_integer("checkpoint_every",     5000,       "Save model after X 
 tf.flags.DEFINE_integer("num_checkpoints",      5,          "Number of checkpoints to store (default: 5)")
 
 # Misc Parameters
+tf.flags.DEFINE_string("checkpoint",            '',         "Resume checkpoint")
 tf.flags.DEFINE_boolean("allow_soft_placement", True,       "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False,      "Log placement of ops on devices")
 
@@ -55,7 +56,7 @@ logger.info("")
 
 # Load data
 logger.info("Loading data...")
-train_size, train_data, train_label = data_helpers.load_data(FLAGS.train_data_file, FLAGS.row_data_file)
+train_size, train_data, train_label = data_helpers.load_data(FLAGS.train_data_file, FLAGS.raw_data_file)
 x_text = train_data
 y = np.array(train_label)
 
@@ -119,9 +120,12 @@ with tf.Graph().as_default():
         grad_summaries_merged = tf.summary.merge(grad_summaries)
 
         # Output directory for models and summaries
-        timestamp = str(int(time.time()))
-        out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-        logger.info("Writing to {}\n".format(out_dir))
+        if FLAGS.checkpoint == "":
+            timestamp = str(int(time.time()))
+            out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+            logger.info("Writing to {}\n".format(out_dir))
+        else:
+            out_dir = FLAGS.checkpoint
 
         # Summaries for loss and accuracy
         loss_summary = tf.summary.scalar("loss", cnn.loss)
@@ -149,6 +153,10 @@ with tf.Graph().as_default():
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
+        ckpt = tf.train.get_checkpoint_state(os.path.join(FLAGS.checkpoint, 'checkpoints'))
+        if ckpt and gfile.Exists(ckpt.model_checkpoint_path):
+            print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
+            saver.restore(sess, ckpt.model_checkpoint_path)
 
         def train_step(x_batch, y_batch):
             """
@@ -162,7 +170,7 @@ with tf.Graph().as_default():
             _, step, summaries, loss, accuracy = sess.run(
                 [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
                 feed_dict)
-            time_str = datetime.datetime.now().isoformat()
+            time_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             logger.info("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             train_summary_writer.add_summary(summaries, step)
 

@@ -33,12 +33,12 @@ def clean_str(string):
     return string.strip().lower()
 
 class Sample():
-    def __init__(self, train_data, row_data, label):
+    def __init__(self, train_data, raw_data, label):
         self.train_data = train_data
-        self.row_data = row_data
+        self.raw_data = raw_data
         self.label = label
 
-def read_data_and_labels(train_data_file, row_data_file):
+def read_data_and_labels(train_data_file, raw_data_file):
     """
     Loads data from files, splits the data into words and generates labels.
     Returns split sentences and labels.
@@ -46,20 +46,20 @@ def read_data_and_labels(train_data_file, row_data_file):
     # Load data from files
     train_data = list(open(train_data_file, "r").readlines())
     train_data = [s.strip() for s in train_data]
-    row_data = list(open(row_data_file, "r").readlines())
-    row_data = [s.strip().split("\t") for s in row_data]
+    raw_data = list(open(raw_data_file, "r").readlines())
+    raw_data = [s.strip().split("\t") for s in raw_data]
     
     train_number = len(train_data)
     logger.info("Read {} lines data".format(train_number))
-    if (len(train_data) != len(row_data)):
-        logger.info("Can't read data, trian data is inconsistent with row data")
+    if (len(train_data) != len(raw_data)):
+        logger.info("Can't read data, trian data is inconsistent with raw data")
         return None
     
     train_samples = []
     train_labels = []
     for i in range(len(train_data)):
-        if (len(row_data[i]) != 2):
-            logger.info("Trian data and label data can't be parsed in {}: {}".format(i,row_data[i]))
+        if (len(raw_data[i]) != 2):
+            logger.info("Trian data and label data can't be parsed in {}: {}".format(i,raw_data[i]))
             train_number = train_number - 1
             continue
         if (len(train_data[i]) <= 1):
@@ -67,9 +67,9 @@ def read_data_and_labels(train_data_file, row_data_file):
             train_number = train_number - 1
             continue
         train_data_temp = train_data[i]
-        row_data_temp = row_data[i][0]
-        label_temp = int(row_data[i][1])
-        train_samples.append(Sample(train_data_temp, row_data_temp, label_temp))
+        raw_data_temp = raw_data[i][0]
+        label_temp = int(raw_data[i][1])
+        train_samples.append(Sample(train_data_temp, raw_data_temp, label_temp))
         train_labels.append(label_temp)
     return [train_number, train_samples, train_labels]
 
@@ -130,8 +130,8 @@ num2onehot={
 
 label_num = [-1, 0, 1, 2, 3, 4, 6, 7]
 
-def load_data(train_data_file, row_data_file):
-    N, X, y = read_data_and_labels(train_data_file, row_data_file)
+def load_data(train_data_file, raw_data_file):
+    N, X, y = read_data_and_labels(train_data_file, raw_data_file)
     if (len(X) != len(y) or len(X) != N or N != len(y)):
         logger.info("Can't load data, number is inconsistent:{}:{}:{}".format(N, len(X), len(y)))
         return None

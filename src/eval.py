@@ -5,26 +5,26 @@ import numpy as np
 import os
 import time
 import datetime
-import data_helpers
+import eval_data_helpers
+from word2vec_helpers import Word2VecHelper
 from text_cnn import TextCNN
 from tensorflow.contrib import learn
+from tensorflow.python.platform import gfile
 import csv
 
 # Parameters
 # ==================================================
 
 # Data Parameters
-tf.flags.DEFINE_string("positive_data_file", "./data/rt-polaritydata/rt-polarity.pos", "Data source for the positive data.")
-tf.flags.DEFINE_string("negative_data_file", "./data/rt-polaritydata/rt-polarity.neg", "Data source for the positive data.")
+tf.flags.DEFINE_string("eval_data_file",        "../data/eval_data.txt", "Data source for the eval")
 
 # Eval Parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_string("checkpoint_dir", "", "Checkpoint directory from training run")
-tf.flags.DEFINE_boolean("eval_train", False, "Evaluate on all training data")
+tf.flags.DEFINE_integer("batch_size",           1,                      "Batch Size (default: 64)")
+tf.flags.DEFINE_string("checkpoint_dir",        "runs/1497870593",      "Checkpoint directory from training run")
 
 # Misc Parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
-tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+tf.flags.DEFINE_boolean("allow_soft_placement", True,                   "Allow device soft device placement")
+tf.flags.DEFINE_boolean("log_device_placement", False,                  "Log placement of ops on devices")
 
 
 FLAGS = tf.flags.FLAGS
@@ -34,34 +34,33 @@ for attr, value in sorted(FLAGS.__flags.items()):
     print("{}={}".format(attr.upper(), value))
 print("")
 
-# CHANGE THIS: Load data. Load your own data here
-if FLAGS.eval_train:
-    x_raw, y_test = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
-    y_test = np.argmax(y_test, axis=1)
-else:
-    x_raw = ["a masterpiece four years in the making", "everything is off."]
-    y_test = [1, 0]
+# Load data. Load your own data here
+eval_size, x_raw, y_test = eval_data_helpers.load_data(FLAGS.eval_data_file)
 
-# Map data into vocabulary
-vocab_path = os.path.join(FLAGS.checkpoint_dir, "..", "vocab")
-vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
-x_test = np.array(list(vocab_processor.transform(x_raw)))
+max_document_length = 22
+word2vec_helpers = Word2VecHelper()
+x_test = word2vec_helpers.SentencesIndex(x_raw, max_document_length)
 
-print("\nEvaluating...\n")
+# Checkpoint
+ckpt = tf.train.get_checkpoint_state(os.path.join(FLAGS.checkpoint_dir, 'checkpoints'))
+if ckpt and gfile.Exists(ckpt.model_checkpoint_path):
+    print("Read model parameters from %s" % ckpt.model_checkpoint_path)
 
 # Evaluation
 # ==================================================
-checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
+print("\nEvaluating...\n")
+
 graph = tf.Graph()
 with graph.as_default():
     session_conf = tf.ConfigProto(
-      allow_soft_placement=FLAGS.allow_soft_placement,
-      log_device_placement=FLAGS.log_device_placement)
+    allow_soft_placement=FLAGS.allow_soft_placement,
+    log_device_placement=FLAGS.log_device_placement)
+    session_conf.gpu_options.allow_growth = True
     sess = tf.Session(config=session_conf)
     with sess.as_default():
         # Load the saved meta graph and restore variables
-        saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
-        saver.restore(sess, checkpoint_file)
+        saver = tf.train.import_meta_graph("{}.meta".format(ckpt.model_checkpoint_path))
+        saver.restore(sess, ckpt.model_checkpoint_path)
 
         # Get the placeholders from the graph by name
         input_x = graph.get_operation_by_name("input_x").outputs[0]
@@ -71,14 +70,15 @@ with graph.as_default():
         # Tensors we want to evaluate
         predictions = graph.get_operation_by_name("output/predictions").outputs[0]
 
-        # Generate batches for one epoch
-        batches = data_helpers.batch_iter(list(x_test), FLAGS.batch_size, 1, shuffle=False)
-
         # Collect the predictions here
         all_predictions = []
 
-        for x_test_batch in batches:
-            batch_predictions = sess.run(predictions, {input_x: x_test_batch, dropout_keep_prob: 1.0})
+        for x in x_test:
+            feed_dict = {
+              input_x: [x],
+              dropout_keep_prob: 1.0
+            }
+            batch_predictions = sess.run(predictions, feed_dict)
             all_predictions = np.concatenate([all_predictions, batch_predictions])
 
 # Print accuracy if y_test is defined
