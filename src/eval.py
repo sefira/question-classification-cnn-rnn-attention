@@ -69,17 +69,22 @@ with graph.as_default():
 
         # Tensors we want to evaluate
         predictions = graph.get_operation_by_name("output/predictions").outputs[0]
-
+        scores = graph.get_operation_by_name("output/scores").outputs[0]
+        softmax = tf.nn.softmax(scores)
         # Collect the predictions here
         all_predictions = []
-
+        all_scores = []
+        all_softmax = []
         for x in x_test:
             feed_dict = {
               input_x: [x],
               dropout_keep_prob: 1.0
             }
-            batch_predictions = sess.run(predictions, feed_dict)
+            batch_predictions, batch_scores, batch_softmax = sess.run(
+                [predictions, scores, softmax], feed_dict)
             all_predictions = np.concatenate([all_predictions, batch_predictions])
+            all_scores.append(batch_scores)
+            all_softmax.append(batch_softmax)
 
 # Print accuracy if y_test is defined
 if y_test is not None:
@@ -87,8 +92,25 @@ if y_test is not None:
     print("Total number of test examples: {}".format(len(y_test)))
     print("Accuracy: {:g}".format(correct_predictions/float(len(y_test))))
 
+    for th in np.linspace(0,0.95,10):
+        threshold = th
+        true_pos = 0
+        true_neg = 0
+        false_pos = 0
+        false_neg = 0
+        for i in range(len(y_test)):
+            if all_predictions[i] != 0:
+                if all_softmax[i][0][int(all_predictions[i])] > threshold:
+                    if all_predictions[i] == y_test[i]: 
+                        true_pos += 1
+                    if all_predictions[i] != y_test[i]:
+                        false_pos += 1
+
+        precision = true_pos / (true_pos + false_pos)
+        print("Precision: {} in {} threshold".format(precision, threshold))
+
 # Save the evaluation to a csv
-predictions_human_readable = np.column_stack((np.array(x_raw), all_predictions))
+predictions_human_readable = np.column_stack((np.array(x_raw), y_test, all_predictions))
 out_path = os.path.join(FLAGS.checkpoint_dir, "..", "prediction.csv")
 print("Saving evaluation to {0}".format(out_path))
 with open(out_path, 'w') as f:
