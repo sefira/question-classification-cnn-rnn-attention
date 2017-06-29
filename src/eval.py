@@ -7,9 +7,6 @@ import time
 import datetime
 import eval_data_helpers
 from word2vec_helpers import Word2VecHelper
-from text_cnn import TextCNN
-from tensorflow.contrib import learn
-from tensorflow.python.platform import gfile
 import csv
 
 # Parameters
@@ -34,7 +31,7 @@ for attr, value in sorted(FLAGS.__flags.items()):
     print("{}={}".format(attr.upper(), value))
 print("")
 
-# Load data. Load your own data here
+# Load data
 eval_size, x_raw, y_test = eval_data_helpers.load_data(FLAGS.eval_data_file)
 
 max_document_length = 22
@@ -43,7 +40,7 @@ x_test = word2vec_helpers.SentencesIndex(x_raw, max_document_length)
 
 # Checkpoint
 ckpt = tf.train.get_checkpoint_state(os.path.join(FLAGS.checkpoint_dir, 'checkpoints'))
-if ckpt and gfile.Exists(ckpt.model_checkpoint_path):
+if ckpt:
     print("Read model parameters from %s" % ckpt.model_checkpoint_path)
 
 # Evaluation
@@ -64,7 +61,6 @@ with graph.as_default():
 
         # Get the placeholders from the graph by name
         input_x = graph.get_operation_by_name("input_x").outputs[0]
-        # input_y = graph.get_operation_by_name("input_y").outputs[0]
         dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
         # Tensors we want to evaluate
