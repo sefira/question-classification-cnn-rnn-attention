@@ -28,7 +28,6 @@ def eval():
     eval_size, x_raw, y_test = eval_data_helpers.load_data(FLAGS.eval_data_file)
     x_test = word2vec_helpers.SentencesIndex(x_raw, max_document_length)
 
-
     all_predictions = []
     all_scores = []
     all_softmax = []
@@ -87,6 +86,39 @@ def eval():
             precision = true_pos / (true_pos + false_pos)
             print("Precision: {} in {} threshold".format(precision, threshold))
 
+def predict(line):
+    # Load data
+    x = eval_data_helpers.process_data(line)
+    xs = word2vec_helpers.SentencesIndex([x], max_document_length)
+
+    # Send predict_request
+    if len(xs) > 0:
+        x = xs[0]
+        input_x = x.tolist()
+        # print(input_x)
+        # print(type(input_x))
+        dropout_keep_prob = 1.0
+
+        predict_request.model_spec.name = "CNN_classifier"
+        predict_request.model_spec.signature_name = "predict_sentence"
+
+        predict_request.inputs["input_x"].CopyFrom(
+            tf.contrib.util.make_tensor_proto([input_x], shape=[1,22], dtype=tf.int32))
+        predict_request.inputs["dropout_keep_prob"].CopyFrom(
+            tf.contrib.util.make_tensor_proto(dropout_keep_prob, shape=[1], dtype=tf.float32))
+        result = stub.Predict(predict_request, 1.0)  # 10 secs timeout
+        # print(type(result))
+        feature_configs = {
+            "prediction": tf.FixedLenFeature(shape=[], dtype=tf.int64),
+            "scores": tf.FixedLenFeature(shape=[], dtype=tf.float32),
+            "softmax": tf.FixedLenFeature(shape=[], dtype=tf.float32),
+        }
+        prediction = result.outputs['prediction'].int64_val
+        scores = np.array(result.outputs['scores'].float_val)
+        softmax = np.array(result.outputs['softmax'].float_val)
+        return [prediction, scores, softmax]
+    return None
+
 
 web_server = Flask(__name__)
 
@@ -101,8 +133,22 @@ def task_list():
 @web_server.route("/query")
 def get_query():
     query = request.args.get('q')
-    print(query)
-    return query
+    result = predict(query)
+    threshold = 0.95
+    if (len(result) == 3) and \
+    (len(result[0]) == 1) and (len(result[1]) == 8) and (len(result[2]) == 8):
+        prediction = result[0][0]
+        scores = result[1]
+        softmax = result[2]
+        if softmax[int(prediction)] > threshold:
+            print(str(prediction))
+            return str(prediction)
+        else:
+            return str(-1)
+    else:
+        return str(-1)
+
+    return str(-1)
 
 def main(_):
     if FLAGS.eval:
