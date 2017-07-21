@@ -163,7 +163,7 @@ with tf.Graph().as_default():
             saver.restore(sess, ckpt.model_checkpoint_path)
         
         def real_len(batches):
-            return [np.argmin(batch + [-1]) for batch in batches]
+            return [np.argmin(batch + [0]) for batch in batches]
         
         def train_step(x_batch, y_batch):
             """

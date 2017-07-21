@@ -17,7 +17,7 @@ tf.flags.DEFINE_string("eval_data_file",        "../data/eval_data.txt", "Data s
 
 # Eval Parameters
 tf.flags.DEFINE_integer("batch_size",           1,                      "Batch Size (default: 64)")
-tf.flags.DEFINE_string("checkpoint_dir",        "runs/1497870593",      "Checkpoint directory from training run")
+tf.flags.DEFINE_string("checkpoint_dir",        "runs/20170721103540",  "Checkpoint directory from training run")
 
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True,                   "Allow device soft device placement")
@@ -62,25 +62,45 @@ with graph.as_default():
         # Get the placeholders from the graph by name
         input_x = graph.get_operation_by_name("input_x").outputs[0]
         dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
+        batch_size = graph.get_operation_by_name("batch_size").outputs[0]
+        real_len = graph.get_operation_by_name("real_len").outputs[0]
+
+        def real_len_func(batches):
+            return [np.argmin(batch + [0]) for batch in batches]
 
         # Tensors we want to evaluate
-        predictions = graph.get_operation_by_name("output/predictions").outputs[0]
-        scores = graph.get_operation_by_name("output/scores").outputs[0]
-        softmax = tf.nn.softmax(scores)
+        prediction = graph.get_operation_by_name("output/predictions").outputs[0]
+        score = graph.get_operation_by_name("output/scores").outputs[0]
+        softmax = tf.nn.softmax(score)
+        attention_weight = graph.get_operation_by_name("attention/attention_weights").outputs[0]
+        
         # Collect the predictions here
         all_predictions = []
         all_scores = []
         all_softmax = []
-        for x in x_test:
+        all_attentions = []
+        for i in range(len(x_test)):
+            real_len_value = real_len_func([x_test[i]])
             feed_dict = {
-              input_x: [x],
-              dropout_keep_prob: 1.0
+              input_x: [x_test[i]],
+              dropout_keep_prob: 1.0,
+              batch_size: 1,
+              real_len: real_len_value
             }
-            batch_predictions, batch_scores, batch_softmax = sess.run(
-                [predictions, scores, softmax], feed_dict)
-            all_predictions = np.concatenate([all_predictions, batch_predictions])
-            all_scores.append(batch_scores)
+            batch_attention, \
+            batch_prediction, \
+            batch_score, \
+            batch_softmax = \
+            sess.run([attention_weight, prediction, score, softmax], 
+                feed_dict)
+
+            all_attentions.append(batch_attention)
+            all_predictions = np.concatenate([all_predictions, batch_prediction])
+            all_scores.append(batch_score)
             all_softmax.append(batch_softmax)
+            print(x_test[i])
+            print(x_raw[i])
+            print(batch_attention[0][0:real_len_value[0]])
 
 # Print accuracy if y_test is defined
 if y_test is not None:
