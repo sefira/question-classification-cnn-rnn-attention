@@ -1,14 +1,12 @@
-## CNN for Chinese Question Classification in Tensorflow
-## 中文语料(百度知道电影领域)问题分类模型 CNN in TensorFlow
+## CNN, RNN and Attention model for Chinese Question Classification in Tensorflow
+## 中文语料(百度知道电影领域)问题分类模型 CNN, RNN and Attention modelin TensorFlow
 ***
-Sentiment classification forked from [dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf), makes the data helper supports Chinese language and modified the embedding from random to gensim pre-trained. This version can achieve an accuracy of 82% with the Chinese zhidao.baidu.com movie corpus
+This project forked from [dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf), [jiegzhan/multi-class-text-classification-cnn-rnn](https://github.com/jiegzhan/multi-class-text-classification-cnn-rnn) and [ilivans/tf-rnn-attention](https://github.com/ilivans/tf-rnn-attention) makes the data helper supports Chinese language and modified the embedding from random to gensim pre-trained. This version can achieve an accuracy of 82% with the Chinese zhidao.baidu.com movie corpus
 
 This algorithm refers to the 
 - [Implementing a CNN for Text Classification in Tensorflow blog post.](http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-in-tensorflow/)
 - [Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1408.5882)
 - [A Sensitivity Analysis of (and Practitioners' Guide to) Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1510.03820)
-
-It is slightly simplified implementation of Kim's [Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1408.5882) paper in Tensorflow.
 
 ## Requirements
 
@@ -30,9 +28,9 @@ python -i train.py
 ```
 While running train.py, it will:
 - import pre-trained word2vec model and use the vocabulary to initialize the CNN input in word2vec_helpers.py
-- create a CNN model which is defined in text_cnn.py
+- create a CNN and RNN model which is defined in text_cnn.py
 - read the trian data which has been read from file and over-sampled and shuffled in data_helpers.py
-- train a CNN model using above mentioned material
+- train a CNN and RNN model using above mentioned material
 
 Training arrives its end after one epoch, in other word, 16874 batches with batch size 128 and train data 2159871 samples
 
@@ -41,12 +39,18 @@ After training, we can plot some intuitive pictures of training summary in Tenso
 ```bash
 tensorboard --logdir src/runs
 ```
-Accuracy 82%
-![Accuracy 82%](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/SCALARS.png)
+Accuracy 82% in CNN
+![Accuracy 82%](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/SCALARScnn.png)
 CNN Model Graph
-![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHS.png)
+![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHScnn.png)
 Model Parameter Histogram
-![Parameter Histogram](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/HISTOGRAMS.png)
+![Parameter Histogram](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/HISTOGRAMScnn.png)
+
+Accuracy 82% in RNN with Attention
+![Accuracy 82%](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/SCALARSrnn.png)
+CNN Model Graph
+![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHSrnn.png)
+Model Parameter Histogram
 
 ## Evaluating
 ```bash
@@ -55,14 +59,12 @@ python -i eval.py
 After all training process, we can evaluate the trained model in natural language test data. The evaluate batch is 1, so that this code can be easily transferred to TensorFlow Serving saved_model.
 
 ***
-本代码Fork自[dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf)。不过与其不同的是我使用data_helprs.py中支持了中文处理，并且修改了词嵌入层，将原来的随机化词嵌入改为了使用预训练好的word2vec向量。也对模型代码和训练过程参数有一些调整。这个版本的CNN问题分类模型在百度知道电影问题分类上实现了82%的准确度
+本代码Fork自[dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf), [jiegzhan/multi-class-text-classification-cnn-rnn](https://github.com/jiegzhan/multi-class-text-classification-cnn-rnn) and [ilivans/tf-rnn-attention](https://github.com/ilivans/tf-rnn-attention)。不过与其不同的是我使用data_helprs.py中支持了中文处理，并且修改了词嵌入层，将原来的随机化词嵌入改为了使用预训练好的word2vec向量。也对模型代码和训练过程参数有一些调整。这个版本的问题分类模型在百度知道电影问题分类上实现了82%的准确度
 
 本算法参考了 
 - [Implementing a CNN for Text Classification in Tensorflow blog post.](http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-in-tensorflow/)
 - [Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1408.5882)
 - [A Sensitivity Analysis of (and Practitioners' Guide to) Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1510.03820)
-
-对Kim的[Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1408.5882)论文中一些没有必要运算进行了简化
 
 ## 安装
 
@@ -102,6 +104,12 @@ CNN Model Graph
 ![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHS.png)
 Model Parameter Histogram
 ![Parameter Histogram](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/HISTOGRAMS.png)
+
+使用RNN和Attention实现了82%的准确率
+![Accuracy 82%](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/SCALARSrnn.png)
+CNN Model Graph
+![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHSrnn.png)
+Model Parameter Histogram
 
 ## 评估
 ```bash
