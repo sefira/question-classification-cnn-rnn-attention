@@ -1,5 +1,5 @@
 ## CNN, RNN and Attention model for Chinese Question Classification in Tensorflow
-## 中文语料(百度知道电影领域)问题分类模型 CNN, RNN and Attention modelin TensorFlow
+## 中文语料(百度知道电影领域)问题分类模型 CNN, RNN and Attention model in TensorFlow
 ***
 This project forked from [dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf), [jiegzhan/multi-class-text-classification-cnn-rnn](https://github.com/jiegzhan/multi-class-text-classification-cnn-rnn) and [ilivans/tf-rnn-attention](https://github.com/ilivans/tf-rnn-attention) makes the data helper supports Chinese language and modified the embedding from random to gensim pre-trained. This version can achieve an accuracy of 82% with the Chinese zhidao.baidu.com movie corpus
 
@@ -99,11 +99,11 @@ tensorboard --logdir src/runs
 ```
 可视化后可以看到实现了82%准确率，CNN模型图，模型参数直方图
 Accuracy 82%
-![Accuracy 82%](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/SCALARS.png)
+![Accuracy 82%](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/SCALARScnn.png)
 CNN Model Graph
-![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHS.png)
+![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHScnn.png)
 Model Parameter Histogram
-![Parameter Histogram](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/HISTOGRAMS.png)
+![Parameter Histogram](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/HISTOGRAMScnn.png)
 
 使用RNN和Attention实现了82%的准确率
 ![Accuracy 82%](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/SCALARSrnn.png)
