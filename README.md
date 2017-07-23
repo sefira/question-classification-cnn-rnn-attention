@@ -50,7 +50,6 @@ Accuracy 82% in RNN with Attention
 ![Accuracy 82%](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/SCALARSrnn.png)
 CNN Model Graph
 ![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHSrnn.png)
-Model Parameter Histogram
 
 ## Evaluating
 ```bash
@@ -109,7 +108,6 @@ Model Parameter Histogram
 ![Accuracy 82%](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/SCALARSrnn.png)
 CNN Model Graph
 ![CNN Model Graph](https://raw.githubusercontent.com/sefira/question-classification-cnn-tf/master/SCREENSHOT/GRAPHSrnn.png)
-Model Parameter Histogram
 
 ## 评估
 ```bash
